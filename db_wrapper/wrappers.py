@@ -18,6 +18,7 @@ class User(object):
         self.telegram_id = telegram_id
         rec = _client.zefir.users.find_one({'telegram_id': self.telegram_id}) or {}
         self.rating = rec.get('rating', 0)
+        self.name = rec.get('name', {'first_name': '', 'last_name': ''})
         self.prev_rating = rec.get('prev_rating', 0)
 
     def update_rating(self, new_rating):
@@ -28,6 +29,10 @@ class User(object):
     def get_leaderbord_index(self):
         num_before = _client.zefir.users.count({'rating': {'$gt': self.rating}})
         return num_before + 1
+
+    @staticmethod
+    def ensure_exists(telegram_id, name):
+        _client.zefi.users.update_one({'telegram_id': telegram_id}, {'name': name}, True)
 
     @staticmethod
     def get_top(n):
