@@ -43,6 +43,8 @@ class Event(object):
         self.vote_until = rec.get('vote_until')
         self.name = rec.get('name', '')
         self.processed = rec.get('processed', False)
+        self.start_notification_sent = rec.get('start_notification_sent', False)
+        self.score_notification_sent = rec.get('score_notification_sent', False)
 
     def set_score(self, new_score):
         _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'score': new_score}}, True)
@@ -50,12 +52,29 @@ class Event(object):
     def set_processed(self):
         _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'processed': True}}, True)
 
+    def set_start_notification_sent(self):
+        _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'start_notification_sent': True}}, True)
+
+    def set_score_notification_sent(self):
+        _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'score_notification_sent': True}}, True)
+
     def get_votes(self):
         return [Vote(rec['user_id'], self.event_id) for rec in _client.zefir.votes.find({'event_id': self.event_id})]
 
     @staticmethod
     def add(event_id, name, vote_until):
         _client.zefir.events.update_one({'event_id': event_id}, {'$set': {'name': name, 'vote_until': vote_until}}, True)
+
+    @staticmethod
+    def get_events_with_no_start_notification():
+        current_time = datetime.datetime.utcnow()
+        return [Event(rec['event_id'])
+                for rec in _client.zefir.events.find({'start_notification_sent': {'$exists': False}, 'vote_until': {'$lt': current_time}})]
+
+    @staticmethod
+    def get_events_with_no_score_notification():
+        return [Event(rec['event_id'])
+                for rec in _client.zefir.events.find({'score_notification_sent': {'$exists': False}, 'processed': {'$exists': True}})]
 
     @staticmethod
     def get_unprocessed_events():
