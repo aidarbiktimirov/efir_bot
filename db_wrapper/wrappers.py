@@ -60,3 +60,10 @@ class Vote(object):
     def set_score(self, new_score):
         if self.predicted_score is None:
             _client.zefir.votes.update({'user_id': self.user_id, 'event_id': self.event_id}, {'$set': {'predicted_score': new_score, 'timestamp': datetime.datetime.now()}})
+
+
+def get_events():
+    events = []
+    for event in _client.zefir.events.find({}):
+        events.append(event)
+    return events
