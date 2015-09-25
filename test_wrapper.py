@@ -4,5 +4,5 @@ import db_wrapper
 
 db_wrapper.init('188.166.85.96', 27017, None, None)
 
-for u in db_wrapper.User.get_top(2):
-    print '%s\t%f' % (u.telegram_id, u.rating)
+print db_wrapper.User(31337).get_leaderbord_index()
+print db_wrapper.User(31338).get_leaderbord_index()

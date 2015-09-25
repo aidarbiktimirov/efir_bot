@@ -25,6 +25,10 @@ class User(object):
         self.prev_rating = self.rating
         self.rating = new_rating
 
+    def get_leaderbord_index(self):
+        num_before = _client.zefir.users.count({'rating': {'$gt': self.rating}})
+        return num_before + 1
+
     @staticmethod
     def get_top(n):
         return [User(rec['telegram_id'])
