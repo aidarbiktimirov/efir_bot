@@ -8,7 +8,7 @@ import db_wrapper
 def score_weight(predicted_score, true_score):
     p = predicted_score.split(':')
     t = true_score.split(':')
-    score_diff = abs(p[0] - t[0]) + abs(p[1] - t[1])
+    score_diff = abs(int(p[0]) - int(t[0])) + abs(int(p[1]) - int(t[1]))
     return math.exp(-1.5 * score_diff)
 
 
