@@ -32,7 +32,7 @@ class User(object):
 
     @staticmethod
     def ensure_exists(telegram_id, name):
-        _client.zefi.users.update_one({'telegram_id': telegram_id}, {'name': name}, True)
+        _client.zefir.users.update_one({'telegram_id': telegram_id}, {'$set': {'name': name}}, True)
 
     @staticmethod
     def get_top(n):
