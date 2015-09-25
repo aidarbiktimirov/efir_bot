@@ -31,7 +31,7 @@ class Event(object):
         self.event_id = event_id
         rec = _client.zefir.events.find_one({'event_id': self.event_id}) or {}
         self.score = rec.get('score')
-        self.vote_unit = rec.get('vote_until')
+        self.vote_until = rec.get('vote_until')
         self.name = rec.get('name', '')
         self.processed = rec.get('processed', False)
 
@@ -49,6 +49,11 @@ class Event(object):
         return [Event(rec['event_id'])
                 for rec in _client.zefir.events.find({'processed': {'$exists': False}, 'score': {'$exists': True}})]
 
+    @staticmethod
+    def get_upcoming_events():
+        return [Event(rec['event_id'])
+                for rec in _client.zefir.events.find({'$query': {'score': {'$exists': False} }, '$orderby': {'vote_until': -1}})]
+
 
 class Vote(object):
     def __init__(self, user_id, event_id):
@@ -61,10 +66,3 @@ class Vote(object):
     def set_score(self, new_score):
         if self.predicted_score is None:
             _client.zefir.votes.update({'user_id': self.user_id, 'event_id': self.event_id}, {'$set': {'predicted_score': new_score, 'timestamp': datetime.datetime.now()}})
-
-
-def get_events():
-    events = []
-    for event in _client.zefir.events.find({}):
-        events.append(event)
-    return events
