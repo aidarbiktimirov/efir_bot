@@ -25,6 +25,11 @@ class User(object):
         self.prev_rating = self.rating
         self.rating = new_rating
 
+    @staticmethod
+    def get_top(n):
+        return [User(rec['telegram_id'])
+                for rec in _client.zefir.users.aggregate([{'$sort': {'rating': -1}}, {'$limit': n}])]
+
 
 class Event(object):
     def __init__(self, event_id):
