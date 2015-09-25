@@ -31,6 +31,7 @@ class Event(object):
         self.event_id = event_id
         rec = _client.zefir.events.find_one({'event_id': self.event_id}) or {}
         self.score = rec.get('score')
+        self.vote_unit = rec.get('vote_until')
         self.name = rec.get('name', '')
         self.processed = rec.get('processed', False)
 
