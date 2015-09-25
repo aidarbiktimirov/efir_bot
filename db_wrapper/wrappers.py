@@ -69,8 +69,10 @@ class Event(object):
 
     @staticmethod
     def get_upcoming_events():
+        current_time = datetime.datetime.utcnow()
+        query = {'score': {'$exists': False}, 'vote_until': {'$gt': current_time}}
         return [Event(rec['event_id'])
-                for rec in _client.zefir.events.find({'$query': {'score': {'$exists': False} }, '$orderby': {'vote_until': 1}})]
+                for rec in _client.zefir.events.find({'$query': query, '$orderby': {'vote_until': 1}})]
 
     @staticmethod
     def get_all():

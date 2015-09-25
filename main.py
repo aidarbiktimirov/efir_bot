@@ -48,6 +48,12 @@ def handle_vote(message):
     db_wrapper.Vote(message.from_user.id, user_events.get(message.from_user.id)).set_score('{}:{}'.format(a, b))
     user_states[message.from_user.id] = UserState.UNKNOWN
     del user_events[message.from_user.id]
+    db_wrapper.User.ensure_exists(message.from_user.id, {'first_name': message.from_user.first_name, 'last_name': message.from_user.last_name})
+
+
+@bot.message_handler(commands=['stats'])
+def stats_handler(message):
+    bot.send_message(message.chat.id, 'TODO')
 
 
 @bot.message_handler()
