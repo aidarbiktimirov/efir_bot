@@ -58,6 +58,11 @@ class Event(object):
         return [Event(rec['event_id'])
                 for rec in _client.zefir.events.find({'$query': {'score': {'$exists': False} }, '$orderby': {'vote_until': 1}})]
 
+    @staticmethod
+    def get_all():
+        return [Event(rec['event_id'])
+                for rec in _client.zefir.events.find({})]
+
 
 class Vote(object):
     def __init__(self, user_id, event_id):
