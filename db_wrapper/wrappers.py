@@ -44,14 +44,14 @@ class Event(object):
         _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'score': new_score}}, True)
 
     def set_processed(self):
-        _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'processed': True}})
+        _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'processed': True}}, True)
 
     def get_votes(self):
         return [Vote(rec['user_id'], self.event_id) for rec in _client.zefir.votes.find({'event_id': self.event_id})]
 
     @staticmethod
     def add(event_id, name, vote_until):
-        _client.zefir.events.update_one({'event_id': event_id}, {'$set': {'name': name, 'vote_until': vote_until}}, upsert=True)
+        _client.zefir.events.update_one({'event_id': event_id}, {'$set': {'name': name, 'vote_until': vote_until}}, True)
 
     @staticmethod
     def get_unprocessed_events():
@@ -79,4 +79,4 @@ class Vote(object):
 
     def set_score(self, new_score):
         if self.predicted_score is None:
-            _client.zefir.votes.update({'user_id': self.user_id, 'event_id': self.event_id}, {'$set': {'predicted_score': new_score, 'timestamp': datetime.datetime.now()}})
+            _client.zefir.votes.update({'user_id': self.user_id, 'event_id': self.event_id}, {'$set': {'predicted_score': new_score, 'timestamp': datetime.datetime.now()}}, True)
