@@ -8,7 +8,7 @@ _client = None
 
 def init(hostname, port, username, password):
     global _client
-    _client = pymongo.MongoClient(host, port)
+    _client = pymongo.MongoClient(hostname, port)
     _client.efir_bot.authenticate(username, password)
 
 
