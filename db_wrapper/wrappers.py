@@ -9,7 +9,8 @@ _client = None
 def init(hostname, port, username, password):
     global _client
     _client = pymongo.MongoClient(hostname, port)
-    _client.efir_bot.authenticate(username, password)
+    if username is not None and password is not None:
+        _client.efir_bot.authenticate(username, password)
 
 
 class User(object):
