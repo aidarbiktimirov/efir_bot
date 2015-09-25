@@ -39,6 +39,13 @@ class Event(object):
     def set_processed(self):
         _client.efir_bot.events.update_one({'event_id': self.event_id}, {'$set': {'processed': True}})
 
+    def get_votes(self):
+        return [Vote(rec['user_id'], self.event_id) for rec in _client.efir_bot.votes.find({'event_id': self.event_id})]
+
+    @staticmethod
+    def get_unprocessed_events():
+        return [Event(rec['event_id']) for rec in _client.efir_bot.events.find({'processed': {'$exists': False}})]
+
 
 class Vote(object):
     def __init__(self, user_id, event_id):
