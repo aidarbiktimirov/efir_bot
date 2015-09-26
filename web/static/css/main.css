@@ -311,10 +311,10 @@ body {
   padding-top: 45px;
 }
 .top-1000 .col-left {
-  text-align: center;
+  text-align: left;
 }
 .top-1000 .col-right {
-  text-align: center;
+  text-align: left;
 }
 .top-1000 .top-item {
   display: inline-block;
