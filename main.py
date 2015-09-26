@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import threading
+import datetime
 import json
 import time
 
@@ -12,7 +13,7 @@ import db_wrapper
 bot = telebot.TeleBot(token='132375141:AAGndKMqlQL-g0X-s6v-Sit5Xv-8ihZX1Yc')
 user_states = {}
 user_events = {}
-event_chats = {}
+event_users = {}
 
 class UserState(object):
     UNKNOWN = 0
@@ -24,8 +25,11 @@ def get_upcoming_event(user_id):
     return events[0] if events else None
 
 
-def dump_top_stats(top_stats):
-    return '\n'.join('{}. {} {} - {} points'.format(i + 1, user.name['first_name'], user.name['last_name'], user.rating) for i, user in enumerate(top_stats))
+def dump_top_stats(top_stats, the_user):
+    user_pos = the_user.get_leaderbord_index()
+    if user_pos == len(top_stats) + 1:
+        top_stats.append(the_user)
+    return '\n'.join('{}. {} {} - {} points{}'.format(i + 1, user.name['first_name'], user.name['last_name'], int(100 * user.rating), ' (you)' if i + 1 == user_pos else '') for i, user in enumerate(top_stats)) + ('\n-----\n{}. {} {} - {} points (you)'.format(user_pos, the_user.name['first_name'], the_user.name['last_name'], int(100 * the_user.rating)) if user_pos > len(top_stats) else '')
 
 
 @bot.message_handler(commands=['vote'])
@@ -37,10 +41,17 @@ def vote_handler(message):
     bot.reply_to(message, 'Vote for upcoming match {}'.format(event.name))
     user_states[message.from_user.id] = UserState.WAITING_FOR_VOTE
     user_events[message.from_user.id] = event.event_id
+    users = event_users.get(event.event_id, set())
+    users.add(message.from_user.id)
+    event_users[event.event_id] = users
 
 
 @bot.message_handler(func=lambda message: user_states.get(message.from_user.id, UserState.UNKNOWN) == UserState.WAITING_FOR_VOTE)
 def handle_vote(message):
+    if db_wrapper.Event(user_events.get(message.from_user.id)).vote_until <= datetime.datetime.utcnow():
+        bot.reply_to(message, 'Sorry, the event has already started')
+        user_states[user_events.get(message.from_user.id)] = UserState.UNKNOWN
+        return
     predictions = [word.split(':') for word in message.text.split() if ':' in word] + [word.split('-') for word in message.text.split() if '-' in word]
     try:
         assert predictions and len(predictions[0]) == 2
@@ -51,18 +62,15 @@ def handle_vote(message):
     bot.reply_to(message, 'Thank you for your vote {}!'.format(message.from_user.first_name))
     db_wrapper.Vote(message.from_user.id, user_events.get(message.from_user.id)).set_score('{}:{}'.format(a, b))
     user_states[message.from_user.id] = UserState.UNKNOWN
-    del user_events[message.from_user.id]
     db_wrapper.User.ensure_exists(message.from_user.id, {'first_name': message.from_user.first_name, 'last_name': message.from_user.last_name})
-
-    key = user_events.get(message.from_user.id)
-    chats = event_chats.get(key, set())
-    chats.add(message.chat.id)
-    event_chats[key] = chats
+    event_id = user_events.get(message.from_user.id)
+    db_wrapper.Event(event_id).add_listener_chat(message.chat.id)
+    del user_events[message.from_user.id]
 
 
 @bot.message_handler(commands=['stats'])
 def stats_handler(message):
-    bot.send_message(message.chat.id, dump_top_stats(db_wrapper.User.get_top(10)))
+    bot.send_message(message.chat.id, dump_top_stats(db_wrapper.User.get_top(1), db_wrapper.User(message.from_user.id)))
 
 
 @bot.message_handler()
@@ -72,7 +80,20 @@ def handle_other_messages(message):
 
 def event_notifier(bot):
     while True:
-        # TODO
+        for event in db_wrapper.Event.get_events_with_no_start_notification():
+            print '{} didn\'t have start notification'.format(event.name)
+            listeners = event.get_listeners()
+            print '{} are listening for it'.format(listeners)
+            for chat in listeners:
+                bot.send_message(chat, '{} has just started!'.format(event.name))
+            event.set_start_notification_sent()
+        for event in db_wrapper.Event.get_events_with_no_score_notification():
+            print '{} didn\'t have score notification'.format(event.name)
+            listeners = event.get_listeners()
+            print '{} are listening for it'.format(listeners)
+            for chat in listeners:
+                bot.send_message(chat, '{} has just finished! Final score is {}\nCheck out how everyone did by typing /stats'.format(event.name, event.score))
+            event.set_score_notification_sent()
         time.sleep(5)
 
 
