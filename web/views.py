@@ -13,7 +13,6 @@ def leaderboard(page_num):
                            leaderboard_left=leaderboard[:page_size / 2],
                            leaderboard_right=leaderboard[page_size / 2:]) 
 
-@app.route('/', defaults={'user_id': 92155745})
 @app.route('/<int:user_id>')
 def index(user_id):
     user = db_wrapper.User(user_id)
@@ -46,7 +45,7 @@ def index(user_id):
     p = predicted_score.split(':')
     t = actual_score.split(':')
     score_diff = abs(int(p[0]) - int(t[0])) + abs(int(p[1]) - int(t[1]))
-    status_line = 'I knew it!' if score_diff == 0 else 'Almost got it!' if score_diff == 1 else 'Hope I’ll do better next time!'
+    status_line = 'I knew it!' if score_diff == 0 else 'Almost got it!' if score_diff == 1 else 'Hope I\'ll do better next time!'
 
     return render_template('index.html',
                            name=full_name,
