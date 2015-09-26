@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 
 import db_wrapper
+import resources
 import requests
 import time
-import datetime
+import dateutil.parser
+
+# country_flags = {
+#     'TR': unicode('\x1f1f7')
+# }
 
 
 class Competition(object):
@@ -18,7 +23,8 @@ class Competition(object):
                     {
                         'id': team['id'],
                         'name': team['name']['en'],
-                        'country_iso': team['country_iso']
+                        'flag': unicode(resources.country_flags[team['country_iso']]) \
+                            if team['country_iso'] in resources.country_flags else unicode('')
                     }
                 )
 
@@ -30,6 +36,7 @@ class Competition(object):
                                 sportapi_competition['status'] == 'finished')
             self._is_finished = sportapi_competition['status'] == 'finished'
             self._result = sportapi_competition['result']
+            self._start_date = dateutil.parser.parse(sportapi_competition['dt_start'])
 
     def __str__(self):
         return 'id: %s, is_started: %r, is_finished: %r, result: %s' % \
@@ -50,11 +57,15 @@ class Competition(object):
     def finished(self):
         return self._is_finished
 
+    def teams(self):
+        return self._teams
+
     def name(self):
-        return "%s(%s) vs %s(%s)" % (self._teams[0]['name'],
-                                     self._teams[0]['country_iso'],
-                                     self._teams[1]['name'],
-                                     self._teams[1]['country_iso'])
+        return "%s - %s" % (self._teams[0]['name'],
+                            self._teams[1]['name'])
+
+    def start_date(self):
+        return self._start_date
 
 
 class YandexSportAPICrawler(object):
@@ -66,7 +77,7 @@ class YandexSportAPICrawler(object):
 
         skip = 0
         payload = {
-            'period': '150d',
+            'period': '7d',
             'limit': '1000',
         }
 
@@ -99,10 +110,12 @@ class YandexSportAPICrawler(object):
 
     @staticmethod
     def crawl():
-        for competition in YandexSportAPICrawler.get_new_competitions():
-            print competition.name()
-            now = datetime.datetime.utcnow()
-            db_wrapper.Event.add(competition.competition_id(), competition.name(), now)
+        competitions = YandexSportAPICrawler.get_new_competitions()
+        for competition in competitions:
+            # print 'Competition: '
+            # print competition.name()
+            print '%s %s' % (competition.name(), str(competition.start_date()))
+            db_wrapper.Event.add(competition.competition_id(), competition.name(), competition.teams(), competition.start_date())
             event = db_wrapper.Event(competition.competition_id())
             if competition.finished():
                 event.set_score(competition.score())
@@ -118,7 +131,10 @@ class YandexSportAPICrawler(object):
 if __name__ == '__main__':
     db_wrapper.init('188.166.85.96', 27017, None, None)
 
-    start_time = time.time()
     while True:
-        YandexSportAPICrawler.crawl()
-        time.sleep(60.0 - ((time.time() - start_time) % 60.0))
+        try:
+            YandexSportAPICrawler.crawl()
+        except Exception as e:
+            print e
+        finally:
+            time.sleep(60)
