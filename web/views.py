@@ -5,10 +5,10 @@ import db_wrapper
 def rating_to_show(rating):
     return int(rating * 100)
 
-@app.route('/', defaults={'page_num': 0})
-@app.route('/page/<int:page_num>')
-def leaderboard(page_num):
-    page_size = 20
+@app.route('/')
+def leaderboard():
+    page_num = 0
+    page_size = 100
     leaderboard = db_wrapper.User.get_top((page_num + 1) * page_size)[page_num * page_size:]
     augmented_leaderboard = [(leaderboard[i], rating_to_show(leaderboard[i].rating), i) for i in range(len(leaderboard))]
     if not leaderboard:

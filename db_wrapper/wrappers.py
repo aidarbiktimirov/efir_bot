@@ -116,6 +116,11 @@ class Event(object):
         return [chat for chat in _client.zefir.events.find_one({'event_id': self.event_id}).get('listeners', [])]
 
     @staticmethod
+    def get_last_processed_event():
+        event = _client.zefir.events.find_one({'$query': {'processed': True}, '$orderby': {'timestamp': -1}})
+        return Event(event['event_id']) if event is not None else None
+
+    @staticmethod
     def add(event_id, name, teams, vote_until):
         _client.zefir.events.update_one({'event_id': event_id}, {'$set': {'name': name, 'teams': teams, 'vote_until': vote_until}}, True)
 
@@ -138,9 +143,9 @@ class Event(object):
     @staticmethod
     def get_upcoming_events():
         current_time = datetime.datetime.utcnow()
-        query = {'score': {'$exists': False}, 'vote_until': {'$gt': current_time}}
+        query = {'vote_until': {'$gt': current_time}}
         return [Event(rec['event_id'])
-                for rec in _client.zefir.events.find({'$query': query, '$orderby': {'vote_until': 1}})]
+                for rec in _client.zefir.events.find({'$query': query, '$orderby': {'vote_until': 1}}, limit=1)]
 
     @staticmethod
     def get_all():
