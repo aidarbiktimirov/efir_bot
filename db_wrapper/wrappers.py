@@ -13,6 +13,18 @@ def init(hostname, port, username, password):
         _client.zefir.authenticate(username, password)
 
 
+class Chat(object):
+    def __init__(self, chat_id):
+        self.chat_id = chat_id
+        rec = _client.zefir.chats.find_one({'chat_id': self.chat_id}) or {}
+        self.users = rec.get('users', [])
+
+    def add_user(self, telegram_id):
+        if telegram_id not in self.users:
+            self.users.append(telegram_id)
+        _client.zefir.chats.update({'chat_id': self.chat_id}, {'$addToSet': {'users': telegram_id}})
+
+
 class User(object):
     def __init__(self, telegram_id):
         self.telegram_id = telegram_id
