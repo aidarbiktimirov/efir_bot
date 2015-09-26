@@ -20,12 +20,12 @@ def try_process_event():
 
     event = unprocessed_events[0]
 
-    print 'Starting score update for event %d' % event.event_id
+    print 'Starting score update for event %s' % event.event_id
 
     votes = event.get_votes()
     weights = [score_weight(votes[i].predicted_score, event.score) for i in range(len(votes))]
 
-    weight_sum = sum(weights)
+    weight_sum = sum(weights) + 1e-6
     normalized_weights = [w / weight_sum for w in weights]
 
     total_prize = float(len(votes))
@@ -37,7 +37,7 @@ def try_process_event():
         print 'User %d updated' % user.telegram_id
 
     event.set_processed()
-    print 'Score update completed for event %d' % event.event_id
+    print 'Score update completed for event %s' % event.event_id
 
 
 def main():
