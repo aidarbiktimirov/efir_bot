@@ -1,8 +1,9 @@
+# coding: utf-8
+
 from web import app
 from flask import render_template, abort
 import db_wrapper
 
-@app.route('/', defaults={'user_id': 92155745})
 @app.route('/<int:user_id>')
 def index(user_id):
     user = db_wrapper.User(user_id)
@@ -32,6 +33,11 @@ def index(user_id):
     event_date = event.vote_until.strftime(date_format)
     next_event_date = next_event.vote_until.strftime(date_format)
 
+    p = predicted_score.split(':')
+    t = actual_score.split(':')
+    score_diff = abs(int(p[0]) - int(t[0])) + abs(int(p[1]) - int(t[1]))
+    status_line = 'I knew it!' if score_diff == 0 else 'Almost got it!' if score_diff == 1 else 'Hope I’ll do better next time!'
+
     return render_template('index.html',
                            name=full_name,
                            rating=rating,
@@ -49,4 +55,5 @@ def index(user_id):
                            next_event_team2_name=next_event_team2_name,
                            next_event_team2_flag=next_event_team2_flag,
                            event_date=event_date,
-                           next_event_date=next_event_date)
+                           next_event_date=next_event_date,
+                           status_line=status_line)
