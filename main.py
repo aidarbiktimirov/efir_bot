@@ -132,7 +132,10 @@ def stats_handler(message):
         t = event.score.split(':')
         score_diff = abs(int(p[0]) - int(t[0])) + abs(int(p[1]) - int(t[1]))
         status_line = '👯 You knew it! 👯' if score_diff == 0 else '👋 You’ve almost got it! 👋' if score_diff == 1 else '😔 Hope you’ll do better next time! 😔'
-        result_line = 'TODO'
+        result_line = '{} {} {}:{} {} {}'.format(
+            event.team1.flag.encode('utf8'), event.team1.name.encode('utf8'), t[0],
+            t[1], event.team2.name.encode('utf8'), event.team2.flag.encode('utf8'),
+        )
         prediction_line = 'Your prediction was {}:{}'.format(*p)
         score_line = 'Total score: {} points (+{})'.format(int(100 * user.rating), int(100 * (user.rating - user.prev_rating)))
         rating_line = 'Current rating — {} of {}'.format(user.get_leaderbord_index(), db_wrapper.User.count())
@@ -140,6 +143,10 @@ def stats_handler(message):
         bot.send_message(message.chat.id, '{}\n\n{}\n{}\n\n{}\n{}\n{}'.format(status_line, result_line, prediction_line, score_line, rating_line, share_line))
     else:
         pass
+        """
+        result_line = 
+        bot.send_message(message.chat.id, 'The match ⚽️ has finished!{}\n\n{}\n{}\n\n{}\n{}\n{}'.format(result_line, predictions_line))
+        """
 
 
 @bot.message_handler()
