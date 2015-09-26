@@ -23,7 +23,7 @@ class Chat(object):
     def add_user(self, telegram_id):
         if telegram_id not in self.users:
             self.users.append(telegram_id)
-        _client.zefir.chats.update({'chat_id': self.chat_id}, {'$addToSet': {'users': telegram_id}})
+        _client.zefir.chats.update_one({'chat_id': self.chat_id}, {'$addToSet': {'users': telegram_id}}, True)
 
 
 class User(object):
