@@ -124,7 +124,22 @@ def help_handler(message):
 @bot.message_handler(commands=['stats'])
 def stats_handler(message):
     save_chat_user(message)
-    pass
+    if isinstance(message.chat, telebot.types.User):
+        user = db_wrapper.User(message.from_user.id)
+        vote = user.get_last_vote_for_finished_event()
+        event = db_wrapper.Event(vote.event_id)
+        p = vote.predicted_score.split(':')
+        t = event.score.split(':')
+        score_diff = abs(int(p[0]) - int(t[0])) + abs(int(p[1]) - int(t[1]))
+        status_line = '👯 You knew it! 👯' if score_diff == 0 else '👋 You’ve almost got it! 👋' if score_diff == 1 else '😔 Hope you’ll do better next time! 😔'
+        result_line = 'TODO'
+        prediction_line = 'Your prediction was {}:{}'.format(*p)
+        score_line = 'Total score: {} points (+{})'.format(int(100 * user.rating), int(100 * (user.rating - user.prev_rating)))
+        rating_line = 'Current rating — {} of {}'.format(user.get_leaderbord_index(), db_wrapper.User.count())
+        share_line = profile_link(user.telegram_id).strip()
+        bot.send_message(message.chat.id, '{}\n\n{}\n{}\n\n{}\n{}\n{}'.format(status_line, result_line, prediction_line, score_line, rating_line, share_line))
+    else:
+        pass
 
 
 @bot.message_handler()
@@ -138,14 +153,14 @@ def handle_other_messages(message):
 def event_notifier(bot):
     while True:
         for event in db_wrapper.Event.get_events_with_no_start_notification():
-            print '{} didn\'t have start notification'.format(event.name.encode('utf8'))
+            print '{} didn’t have start notification'.format(event.name.encode('utf8'))
             listeners = event.get_listeners()
             print '{} are listening for it'.format(listeners)
             for chat in listeners:
                 bot.send_message(chat, '{} has just started!'.format(event.name.encode('utf8')))
             event.set_start_notification_sent()
         for event in db_wrapper.Event.get_events_with_no_score_notification():
-            print '{} didn\'t have score notification'.format(event.name.encode('utf8'))
+            print '{} didn’t have score notification'.format(event.name.encode('utf8'))
             listeners = event.get_listeners()
             print '{} are listening for it'.format(listeners)
             for chat in listeners:
