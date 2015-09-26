@@ -26,10 +26,18 @@ def get_upcoming_event(user_id):
 
 
 def dump_top_stats(top_stats, the_user):
+    def dump_line(pos, user, is_specified_user):
+        return '{}. {} {} - {} points{}'.format(
+            pos, user.name['first_name'], user.name['last_name'],
+            int(100 * user.rating), ' (you)' if is_specified_user else '')
     user_pos = the_user.get_leaderbord_index()
     if user_pos == len(top_stats) + 1:
         top_stats.append(the_user)
-    return '\n'.join('{}. {} {} - {} points{}'.format(i + 1, user.name['first_name'], user.name['last_name'], int(100 * user.rating), ' (you)' if i + 1 == user_pos else '') for i, user in enumerate(top_stats)) + ('\n-----\n{}. {} {} - {} points (you)'.format(user_pos, the_user.name['first_name'], the_user.name['last_name'], int(100 * the_user.rating)) if user_pos > len(top_stats) else '')
+    return '\n'.join(
+        dump_line(i + 1, user, i + 1 == user_pos) for i, user in enumerate(top_stats)
+    ) + (
+        '\n-----\n' + dump_line(user_pos, the_user, True) if user_pos > len(top_stats) else ''
+    )
 
 
 @bot.message_handler(commands=['vote'])
