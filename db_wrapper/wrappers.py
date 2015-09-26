@@ -2,6 +2,7 @@
 
 import datetime
 import pymongo
+import collections
 
 _client = None
 
@@ -37,6 +38,17 @@ class User(object):
         _client.zefir.users.update_one({'telegram_id': self.telegram_id}, {'$set': {'rating': new_rating, 'prev_rating': self.rating}}, True)
         self.prev_rating = self.rating
         self.rating = new_rating
+
+    def get_votes(self):
+        return [Vote(rec['user_id'], rec['event_id'])
+                for rec in _client.zefir.votes.find({'$query': {'user_id': self.telegram_id}, '$orderby': {'timestamp': -1}})]
+
+    def get_last_vote_for_finished_event(self):
+        votes = self.get_votes()
+        for vote in votes:
+            if Event(vote.event_id).processed:
+                return vote
+        pass
 
     def get_leaderbord_index(self):
         num_before = _client.zefir.users.count({'rating': {'$gt': self.rating}})
@@ -77,6 +89,12 @@ class Event(object):
 
     def get_votes(self):
         return [Vote(rec['user_id'], self.event_id) for rec in _client.zefir.votes.find({'event_id': self.event_id})]
+
+    def get_vote_stats(self):
+        votes = self.get_votes()
+        prediction_counter = collections.Counter([v.predicted_score for v in votes])
+        total = len(votes)
+        return dict([(k, 1.0 * v / total) for k, v in prediction_counter.iteritems()])
 
     def add_listener_chat(self, chat):
         _client.zefir.events.update({'event_id': self.event_id}, {'$addToSet': {'listeners': chat}})
