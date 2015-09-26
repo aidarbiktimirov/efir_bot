@@ -14,6 +14,11 @@ def init(hostname, port, username, password):
         _client.zefir.authenticate(username, password)
 
 
+class Team(object):
+    def __init__(self, name, flag):
+        self.name = name
+        self.flag = flag
+
 class User(object):
     def __init__(self, telegram_id):
         self.telegram_id = telegram_id
@@ -47,6 +52,10 @@ class User(object):
         _client.zefir.users.update_one({'telegram_id': telegram_id}, {'$set': {'name': name}}, True)
 
     @staticmethod
+    def count():
+        return _client.zefir.users.count()
+
+    @staticmethod
     def get_top(n):
         return [User(rec['telegram_id'])
                 for rec in _client.zefir.users.aggregate([{'$sort': {'rating': -1}}, {'$limit': n}])]
@@ -62,6 +71,10 @@ class Event(object):
         self.processed = rec.get('processed', False)
         self.start_notification_sent = rec.get('start_notification_sent', False)
         self.score_notification_sent = rec.get('score_notification_sent', False)
+
+        teams = rec.get('teams', [{'flag': '', 'name': 'Team 1'}, {'flag': '', 'name': 'Team 2'}])
+        self.team1 = Team(teams[0]['name'], teams[0]['flag'])
+        self.team2 = Team(teams[1]['name'], teams[1]['flag'])
 
     def set_score(self, new_score):
         _client.zefir.events.update_one({'event_id': self.event_id}, {'$set': {'score': new_score}}, True)
