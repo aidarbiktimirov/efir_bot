@@ -37,7 +37,7 @@
                         </div>
                         <div class="match">
                             <div class="match-info">
-                                <div class="match-date"><span>21 september</span></div>
+                                <div class="match-date"><span>{{event_date}}</span></div>
                                 <div class="match-score">
                                     <div class="team team-left">
                                         <span class="team-name">{{team1_name}}</span>
@@ -66,40 +66,38 @@
                         <div class="total-stats">
                             <div class="inner">
                                 <div class="total-score">
-                                    <span>Total score</span>
+                                    <span>Total score:</span>
                                     {{rating}} points <b>+{{rating_diff}}</b>
                                 </div>
                                 <div class="current-rating">
                                     <span>
-                                        Current rating
+                                        Current rating:
                                     </span>
-                                    {{leaderboard_pos}} of {{leaderboard_size}}
+                                    {{leaderboard_pos}} out of {{leaderboard_size}}
                                 </div>
                                 <div class="delimeter"></div>
                                 <div class="next-match">
-                                    <div class="match-title">Next match</div>
+                                    <div class="match-title">Next match:</div>
                                     <div class="match-score">
                                         <div class="team team-left">
-                                            <img src="/static/img/flag.png" alt="">
-                                            <span class="team-name">Fenerbahce</span>
+                                            <span class="team-name">{{next_event_team1_name}}</span>
                                         </div>
                                         <div class="score">
-                                            3 : 1
+                                            vs
                                         </div>
                                         <div class="team team-right">
-                                            <img src="/static/img/flag.png" alt="">
-                                            <span class="team-name">Galatasaray</span>
+                                            <span class="team-name">{{next_event_team2_name}}</span>
                                         </div>
                                     </div>
                                     <div class="match-date">
-                                        2 october
+                                        {{next_event_date}}
                                     </div>
                                 </div>
                                 <div class="text-center">
-                                    <a href="#" class="make-my-stake btn-green">Make my stake</a>
+                                    <a href="#" class="make-my-stake btn-green">Make a prediction!</a>
                                 </div>
                                 <div class="profile-bottom">
-                                    <a href="#" class="show-scoreboard">Show scoreboard "TOP 1000"</a>
+                                    <a href="#" class="show-scoreboard">Show leaderboard TOP 1000</a>
                                 </div>
                             </div>
                         </div>
