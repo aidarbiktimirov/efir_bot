@@ -1,9 +1,19 @@
-# coding: utf-8
-
 from web import app
 from flask import render_template, abort
 import db_wrapper
 
+@app.route('/', defaults={'page_num': 0})
+@app.route('/p<int:page_num>')
+def leaderboard(page_num):
+    page_size = 20
+    leaderboard = db_wrapper.User.get_top((page_num + 1) * page_size)[page_num * page_size:]
+    if not leaderboard:
+        abort(404)
+    return render_template('top1000.html',
+                           leaderboard_left=leaderboard[:page_size / 2],
+                           leaderboard_right=leaderboard[page_size / 2:]) 
+
+@app.route('/', defaults={'user_id': 92155745})
 @app.route('/<int:user_id>')
 def index(user_id):
     user = db_wrapper.User(user_id)
