@@ -84,6 +84,12 @@ class Event(object):
         total = len(votes)
         return dict([(k, 1.0 * v / total) for k, v in prediction_counter.iteritems()])
 
+    def add_listener_chat(self, chat):
+        _client.zefir.events.update({'event_id': self.event_id}, {'$addToSet': {'listeners': chat}})
+
+    def get_listeners(self):
+        return [chat for chat in _client.zefir.events.find_one({'event_id': self.event_id}).get('listeners', [])]
+
     @staticmethod
     def add(event_id, name, vote_until):
         _client.zefir.events.update_one({'event_id': event_id}, {'$set': {'name': name, 'vote_until': vote_until}}, True)
