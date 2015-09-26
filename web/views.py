@@ -18,9 +18,11 @@ def leaderboard(page_num):
 def index(user_id):
     user = db_wrapper.User(user_id)
     vote = user.get_last_vote_for_finished_event()
-    if vote is None:
-        abort(404)
     event = db_wrapper.Event(vote.event_id)
+    next_events = db_wrapper.Event.get_upcoming_events()
+    next_event = next_events[0] if len(next_events) > 0 else None
+    if vote is None or next_event is None:
+        abort(404)
 
     full_name = user.name['first_name'] + ' ' + user.name['last_name']
     rating = int(user.rating * 100)
@@ -32,6 +34,14 @@ def index(user_id):
     team1_flag = event.team1.flag
     team2_name = event.team2.name
     team2_flag = event.team2.flag
+    next_event_team1_name = next_event.team1.name
+    next_event_team1_flag = next_event.team1.flag
+    next_event_team2_name = next_event.team2.name
+    next_event_team2_flag = next_event.team2.flag
+
+    date_format = '%B %-d, %Y'
+    event_date = event.vote_until.strftime(date_format)
+    next_event_date = next_event.vote_until.strftime(date_format)
 
     return render_template('index.html',
                            name=full_name,
@@ -44,4 +54,10 @@ def index(user_id):
                            team1_name=team1_name,
                            team1_flag=team1_flag,
                            team2_name=team2_name,
-                           team2_flag=team2_flag)
+                           team2_flag=team2_flag,
+                           next_event_team1_name=next_event_team1_name,
+                           next_event_team1_flag=next_event_team1_flag,
+                           next_event_team2_name=next_event_team2_name,
+                           next_event_team2_flag=next_event_team2_flag,
+                           event_date=event_date,
+                           next_event_date=next_event_date)
