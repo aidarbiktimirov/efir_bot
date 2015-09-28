@@ -40,7 +40,9 @@ def dump_top_stats(top_stats, the_user):
     user_pos = the_user.get_leaderbord_index()
     if user_pos == len(top_stats) + 1:
         top_stats.append(the_user)
-    return '\n'.join(
+    return 'Leaderboard ({} people total)\n'.format(
+        db_wrapper.User.count()
+    ) + '\n'.join(
         dump_line(i + 1, user, i + 1 == user_pos) for i, user in enumerate(top_stats)
     ) + (
         '\n-----\n' + dump_line(user_pos, the_user, True) if user_pos > len(top_stats) else ''
@@ -48,7 +50,10 @@ def dump_top_stats(top_stats, the_user):
 
 
 def vote_distribution(event):
-    return 'TODO'
+    return '\n'.join(
+        '{} — {}%'.format(k, int(100 * v))
+        for k, v in event.get_vote_stats().iteritems()
+    )
 
 
 def dump_grouptop_stats(chat_id, user_id):
@@ -58,7 +63,9 @@ def dump_grouptop_stats(chat_id, user_id):
             user.name['first_name'].encode('utf8'), user.name['last_name'].encode('utf8'), int(100 * user.rating))
 
     users = [db_wrapper.User(telegram_id) for telegram_id in db_wrapper.Chat(chat_id).users]
-    return '\n'.join(dump_line(user) for user in sorted(users, key=lambda user: -user.rating)) + profile_link(user_id)
+    return 'Leaderboard ({} people total)\n'.format(
+        db_wrapper.User.count()
+    ) + '\n'.join(dump_line(user) for user in sorted(users, key=lambda user: -user.rating)) + profile_link(user_id)
 
 
 def save_chat_user(message):
@@ -71,9 +78,9 @@ def vote_handler(message):
     save_chat_user(message)
     event = get_upcoming_event(message.from_user.id)
     if event is None:
-        bot.reply_to(message, 'There are no upcoming events for you to vote for {}'.format(telegram.Emoji.CRYING_CAT_FACE))
+        bot.reply_to(message, 'You’ve already voted. You cannot change your vote.😛')
         return
-    bot.reply_to(message, 'Guess the score for the game {} on {}. Type the score you expect, like 3:2 or 0-1.'.format(event.name.encode('utf8'), event.vote_until))
+    bot.reply_to(message, 'Guess the score for the game {} on {}. Type the score you expect, like 3:2 or 0-1.'.format(event.name.encode('utf8'), event.vote_until.strftime('%d %B, %Y')))
     user_states[message.from_user.id] = UserState.WAITING_FOR_VOTE
     user_events[message.from_user.id] = event.event_id
     users = event_users.get(event.event_id, set())
@@ -97,7 +104,7 @@ def handle_vote(message):
         return
     event = db_wrapper.Event(user_events.get(message.from_user.id))
     bot.reply_to(message, 'Your guess is {}:{}. You’ll know how well you did right after the end of the match on {}. Here’s how other people voted:\n{}'.format(
-        a, b, event.vote_until, vote_distribution(event)))
+        a, b, event.vote_until.strftime('%d %B, %Y'), vote_distribution(event)))
     db_wrapper.Vote(message.from_user.id, user_events.get(message.from_user.id)).set_score('{}:{}'.format(a, b))
     user_states[message.from_user.id] = UserState.UNKNOWN
     db_wrapper.User.ensure_exists(message.from_user.id, {'first_name': message.from_user.first_name, 'last_name': message.from_user.last_name})
@@ -142,11 +149,27 @@ def stats_handler(message):
         share_line = profile_link(user.telegram_id).strip()
         bot.send_message(message.chat.id, '{}\n\n{}\n{}\n\n{}\n{}\n{}'.format(status_line, result_line, prediction_line, score_line, rating_line, share_line))
     else:
-        pass
-        """
-        result_line = 
-        bot.send_message(message.chat.id, 'The match ⚽️ has finished!{}\n\n{}\n{}\n\n{}\n{}\n{}'.format(result_line, predictions_line))
-        """
+        event = db_wrapper.Event.get_last_processed_event()
+        if event is None:
+            return
+        smilies = ['👳', '👦', '👨', '👩', '👵', '👴', '👱']
+        t = event.score.split(':')
+        result_line = '{} {} {}:{} {} {}'.format(
+            event.team1.flag.encode('utf8'), event.team1.name.encode('utf8'), t[0],
+            t[1], event.team2.name.encode('utf8'), event.team2.flag.encode('utf8'),
+        )
+        prediction_lines = [
+            '{}. {} {} {}: voted {} +{} points ({} total)'.format(i + 1, smilies[hash(user.name['first_name']) % len(smilies)],
+                user.name['first_name'].encode('utf8'), user.name['last_name'].encode('utf8'),
+                db_wrapper.Vote(user.telegram_id, event.event_id).predicted_score,
+                int(100 * user.rating - user.prev_rating), int(100 * user.rating),
+            )
+            for i, user in enumerate(
+                sorted((db_wrapper.User(user_id) for user_id in db_wrapper.Chat(message.chat.id).users), key=lambda user: -(user.rating - user.prev_rating))
+            )
+            if db_wrapper.Vote(user.telegram_id, event.event_id).predicted_score is not None
+        ]
+        bot.send_message(message.chat.id, 'The match ⚽️ has finished!\n\n{}\n{}'.format(result_line, '\n'.join(prediction_lines)))
 
 
 @bot.message_handler()
