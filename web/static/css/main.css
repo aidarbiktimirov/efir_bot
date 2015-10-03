@@ -368,6 +368,11 @@ body {
   width: auto;
   padding: 0 10px;
 }
+
+.top-1000 .top-item .row .col-1 {
+  min-width: 50px;
+}
+
 .btn-green {
   display: inline-block;
   background: #00ad4d;

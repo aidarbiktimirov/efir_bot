@@ -31,9 +31,7 @@ def leaderboard():
     if not leaderboard:
         abort(404)
     leaderboard_user_info = [LeaderboardUserInfo(leaderboard[i], i+1) for i in range(len(leaderboard))]
-    return render_template('leaderboard.html',
-                           leaderboard_left=leaderboard_user_info[:page_size / 2],
-                           leaderboard_right=leaderboard_user_info[page_size / 2:])
+    return render_template('leaderboard.html', leaderboard=leaderboard_user_info)
 
 @app.route('/<int:user_id>')
 def index(user_id):
