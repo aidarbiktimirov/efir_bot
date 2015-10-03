@@ -61,7 +61,7 @@
                                                 <div class="row">
                                                     <div class="col-xs-3 col-1">
                                                         <div class="top-number">
-                                                            {{u[2]}}
+                                                            {{u.position}}
                                                         </div>
                                                     </div>
                                                     <div class="col-xs-3 col-2">
@@ -71,8 +71,8 @@
                                                     </div>
                                                     <div class="col-xs-6 col-3">
                                                         <div class="top-info">
-                                                            <a href="/{{u[0].telegram_id}}" class="name">{{u[0].name['first_name']}} {{u[0].name['last_name']}}</a>
-                                                            <div class="score">{{u[1]}}</div>
+                                                            <a href="/{{u.user.telegram_id}}" class="name">{{u.name}}</a>
+                                                            <div class="score">{{u.rating}}</div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -86,7 +86,7 @@
                                                 <div class="row">
                                                     <div class="col-xs-3 col-1">
                                                         <div class="top-number">
-                                                            {{u[2]}}
+                                                            {{u.position}}
                                                         </div>
                                                     </div>
                                                     <div class="col-xs-3 col-2">
@@ -96,8 +96,8 @@
                                                     </div>
                                                     <div class="col-xs-6 col-3">
                                                         <div class="top-info">
-                                                            <a href="#" class="name">{{u[0].name['first_name']}} {{u[0].name['last_name']}}</a>
-                                                            <div class="score">{{u[1]}}</div>
+                                                            <a href="#" class="name">{{u.name}}</a>
+                                                            <div class="score">{{u.rating}}</div>
                                                         </div>
                                                     </div>
                                                 </div>

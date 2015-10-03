@@ -5,17 +5,35 @@ import db_wrapper
 def rating_to_show(rating):
     return int(rating * 100)
 
+def get_full_name(user):
+    first_name = user.name['first_name']
+    last_name = user.name['last_name']
+    if first_name is None and last_name is None:
+        return 'Unknown'
+    if first_name is None:
+        return last_name
+    if last_name is None:
+        return first_name
+    return first_name + ' ' + last_name
+
+class LeaderboardUserInfo:
+    def __init__(self, user, position):
+        self.user = user
+        self.position = position
+        self.rating = rating_to_show(user.rating)
+        self.name = get_full_name(user)
+
 @app.route('/')
 def leaderboard():
     page_num = 0
     page_size = 100
     leaderboard = db_wrapper.User.get_top((page_num + 1) * page_size)[page_num * page_size:]
-    augmented_leaderboard = [(leaderboard[i], rating_to_show(leaderboard[i].rating), i) for i in range(len(leaderboard))]
     if not leaderboard:
         abort(404)
-    return render_template('top1000.html',
-                           leaderboard_left=augmented_leaderboard[:page_size / 2],
-                           leaderboard_right=augmented_leaderboard[page_size / 2:])
+    leaderboard_user_info = [LeaderboardUserInfo(leaderboard[i], i+1) for i in range(len(leaderboard))]
+    return render_template('leaderboard.html',
+                           leaderboard_left=leaderboard_user_info[:page_size / 2],
+                           leaderboard_right=leaderboard_user_info[page_size / 2:])
 
 @app.route('/<int:user_id>')
 def index(user_id):
@@ -27,7 +45,7 @@ def index(user_id):
     if vote is None or next_event is None:
         abort(404)
 
-    full_name = user.name['first_name'] + ' ' + user.name['last_name']
+    full_name = get_full_name(user)
     rating = int(user.rating * 100)
     rating_diff = int((user.rating - user.prev_rating) * 100)
     leaderboard_pos = user.get_leaderbord_index()
