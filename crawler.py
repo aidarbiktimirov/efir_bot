@@ -77,7 +77,7 @@ class YandexSportAPICrawler(object):
 
         skip = 0
         payload = {
-            'period': '7d',
+            'period': '30d',
             'limit': '1000',
         }
 
@@ -122,10 +122,11 @@ class YandexSportAPICrawler(object):
 
     @staticmethod
     def get_known_events():
-        known_event_ids = []
-        for event in db_wrapper.Event.get_all():
-            known_event_ids.append(event.event_id)
-        return known_event_ids
+        return [event.event_id for event in db_wrapper.Event.get_all()]
+        # known_event_ids = []
+        # for event in db_wrapper.Event.get_all():
+        #     known_event_ids.append(event.event_id)
+        # return known_event_ids
 
 
 if __name__ == '__main__':
