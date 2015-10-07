@@ -37,6 +37,9 @@ class User(object):
         rec = _client.zefir.users.find_one({'telegram_id': self.telegram_id}) or {}
         self.rating = rec.get('rating', 0)
         self.name = rec.get('name', {'first_name': '', 'last_name': ''})
+        for k in ['first_name', 'last_name']:
+            if self.name[k] is None:
+                self.name[k] = ''
         self.prev_rating = rec.get('prev_rating', 0)
 
     def update_rating(self, new_rating):
@@ -117,7 +120,7 @@ class Event(object):
 
     @staticmethod
     def get_last_processed_event():
-        event = _client.zefir.events.find_one({'$query': {'processed': True}, '$orderby': {'timestamp': -1}})
+        event = _client.zefir.events.find_one({'$query': {'processed': True}, '$orderby': {'vote_until': -1}})
         return Event(event['event_id']) if event is not None else None
 
     @staticmethod
