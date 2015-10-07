@@ -1,6 +1,8 @@
 from web import app
-from flask import render_template, abort
+from flask import render_template, abort, redirect
 import db_wrapper
+import telebot
+import urllib2
 
 def rating_to_show(rating):
     return int(rating * 100)
@@ -68,6 +70,7 @@ def index(user_id):
     status_line = 'I knew it!' if score_diff == 0 else 'Almost got it!' if score_diff == 1 else 'Hope I\'ll do better next time!'
 
     return render_template('index.html',
+                           user_id=user_id,
                            name=full_name,
                            rating=rating,
                            rating_diff=rating_diff,
@@ -86,3 +89,21 @@ def index(user_id):
                            event_date=event_date,
                            next_event_date=next_event_date,
                            status_line=status_line)
+
+
+@app.route('/picture/<int:user_id>')
+def get_profile_picture(user_id):
+    bot = telebot.TeleBot('132375141:AAGndKMqlQL-g0X-s6v-Sit5Xv-8ihZX1Yc')
+    try:
+        photos = bot.get_user_profile_photos(user_id).photos
+        print photos
+        if photos and photos[0]:
+            img_url = 'https://api.telegram.org/file/bot{}/{}'.format(bot.token, bot.get_file(photos[0][0].file_id).file_path)
+            req = urllib2.urlopen(img_url)
+            return req.read(), 200, {
+                'Content-Type': 'image/png',
+            }
+    except Exception as e:
+        print e
+        pass
+    return redirect('/static/img/photo.png')
