@@ -16,6 +16,7 @@ user_states = {}
 user_events = {}
 event_users = {}
 
+
 class UserState(object):
     UNKNOWN = 0
     WAITING_FOR_VOTE = 1
@@ -43,16 +44,17 @@ def dump_top_stats(top_stats, the_user):
     return 'Leaderboard ({} people total)\n'.format(
         db_wrapper.User.count()
     ) + '\n'.join(
-        dump_line(i + 1, user, i + 1 == user_pos) for i, user in enumerate(top_stats)
+        dump_line(i + 1, user, user.telegram_id == the_user.telegram_id) for i, user in enumerate(top_stats)
     ) + (
         '\n-----\n' + dump_line(user_pos, the_user, True) if user_pos > len(top_stats) else ''
     ) + profile_link(the_user.telegram_id)
 
 
 def vote_distribution(event):
+    smilies = ['1️⃣', '2️⃣', '3️⃣', '4️⃣']
     return '\n'.join(
-        '{} — {}%'.format(k, int(100 * v))
-        for k, v in event.get_vote_stats().iteritems()
+        '{} {}% {}{}'.format(s, int(100 * v), k, ' 🚀' if s == smilies[0] else '')
+        for s, (k, v) in zip(smilies, sorted(event.get_vote_stats().iteritems(), key=lambda x: -x[1]))
     )
 
 
@@ -65,7 +67,7 @@ def dump_grouptop_stats(chat_id, user_id):
     users = [db_wrapper.User(telegram_id) for telegram_id in db_wrapper.Chat(chat_id).users]
     return 'Leaderboard ({} people total)\n'.format(
         db_wrapper.User.count()
-    ) + '\n'.join(dump_line(user) for user in sorted(users, key=lambda user: -user.rating)) + profile_link(user_id)
+    ) + '\n'.join(dump_line(user) for user in sorted(users, key=lambda user: -user.rating) if user.name['first_name']) + profile_link(user_id)
 
 
 def save_chat_user(message):
@@ -103,7 +105,7 @@ def handle_vote(message):
         bot.reply_to(message, '{} I expect something like 3:2 or 0-1.'.format(telegram.Emoji.GRINNING_FACE_WITH_SMILING_EYES))
         return
     event = db_wrapper.Event(user_events.get(message.from_user.id))
-    bot.reply_to(message, 'Your guess is {}:{}. You’ll know how well you did right after the end of the match on {}. Here’s how other people voted:\n{}'.format(
+    bot.reply_to(message, 'Your guess is {}:{}. You’ll know how well you did right after the end of the match on {}. Here’s what other people think:\n{}'.format(
         a, b, event.vote_until.strftime('%d %B, %Y'), vote_distribution(event)))
     db_wrapper.Vote(message.from_user.id, user_events.get(message.from_user.id)).set_score('{}:{}'.format(a, b))
     user_states[message.from_user.id] = UserState.UNKNOWN
@@ -125,15 +127,27 @@ def top_handler(message):
 @bot.message_handler(commands=['help'])
 def help_handler(message):
     save_chat_user(message)
-    bot.send_message(message.chat.id, str(bot.get_me()))
+    bot.send_message(message.chat.id, """Make predictions about Fenerbahçe match results and earn points:
+/vote to make a prediction.
+
+Compete for top positions in the leaderboard 🏆:
+/stats to see your score and /top to see who’s the best 👑 right now.
+
+Compete with friends 👨‍👩‍👨‍:
+Create a group chat with your friends, invite @tahminetbot to the group, make predictions and see which one among you has the best guess.""")
 
 
 @bot.message_handler(commands=['stats'])
 def stats_handler(message):
     save_chat_user(message)
     if isinstance(message.chat, telebot.types.User):
+        print message.from_user.id
         user = db_wrapper.User(message.from_user.id)
+        print user.telegram_id
         vote = user.get_last_vote_for_finished_event()
+        if vote is None:
+            return
+        print vote.user_id, vote.event_id
         event = db_wrapper.Event(vote.event_id)
         p = vote.predicted_score.split(':')
         t = event.score.split(':')
@@ -162,7 +176,7 @@ def stats_handler(message):
             '{}. {} {} {}: voted {} +{} points ({} total)'.format(i + 1, smilies[hash(user.name['first_name']) % len(smilies)],
                 user.name['first_name'].encode('utf8'), user.name['last_name'].encode('utf8'),
                 db_wrapper.Vote(user.telegram_id, event.event_id).predicted_score,
-                int(100 * user.rating - user.prev_rating), int(100 * user.rating),
+                int(100 * (user.rating - user.prev_rating)), int(100 * user.rating),
             )
             for i, user in enumerate(
                 sorted((db_wrapper.User(user_id) for user_id in db_wrapper.Chat(message.chat.id).users), key=lambda user: -(user.rating - user.prev_rating))
@@ -170,6 +184,11 @@ def stats_handler(message):
             if db_wrapper.Vote(user.telegram_id, event.event_id).predicted_score is not None
         ]
         bot.send_message(message.chat.id, 'The match ⚽️ has finished!\n\n{}\n{}'.format(result_line, '\n'.join(prediction_lines)))
+
+
+@bot.message_handler(commands=['debug'])
+def handle_debug_command(message):
+    bot.send_message(message.chat.id, bot.get_file(bot.get_user_profile_photos(27051177).photos[0][0].file_id).file_path)
 
 
 @bot.message_handler()
@@ -182,20 +201,23 @@ def handle_other_messages(message):
 
 def event_notifier(bot):
     while True:
-        for event in db_wrapper.Event.get_events_with_no_start_notification():
-            print '{} didn’t have start notification'.format(event.name.encode('utf8'))
-            listeners = event.get_listeners()
-            print '{} are listening for it'.format(listeners)
-            for chat in listeners:
-                bot.send_message(chat, '{} has just started!'.format(event.name.encode('utf8')))
-            event.set_start_notification_sent()
-        for event in db_wrapper.Event.get_events_with_no_score_notification():
-            print '{} didn’t have score notification'.format(event.name.encode('utf8'))
-            listeners = event.get_listeners()
-            print '{} are listening for it'.format(listeners)
-            for chat in listeners:
-                bot.send_message(chat, '{} has just finished! Final score is {}\nCheck out how everyone did by typing /stats'.format(event.name.encode('utf8'), event.score))
-            event.set_score_notification_sent()
+        try:
+            for event in db_wrapper.Event.get_events_with_no_start_notification():
+                print '{} didn’t have start notification'.format(event.name.encode('utf8'))
+                listeners = event.get_listeners()
+                print '{} are listening for it'.format(listeners)
+                for chat in listeners:
+                    bot.send_message(chat, 'Voting has finished as the {} match is about to begin. Here’s what other people think:\n{}'.format(event.name.encode('utf8'), vote_distribution(event)))
+                event.set_start_notification_sent()
+            for event in db_wrapper.Event.get_events_with_no_score_notification():
+                print '{} didn’t have score notification'.format(event.name.encode('utf8'))
+                listeners = event.get_listeners()
+                print '{} are listening for it'.format(listeners)
+                for chat in listeners:
+                    bot.send_message(chat, '{} has just finished! Final score is {}\nCheck out how everyone did by typing /stats'.format(event.name.encode('utf8'), event.score))
+                event.set_score_notification_sent()
+        except:
+            pass
         time.sleep(5)
 
 
@@ -205,5 +227,5 @@ if __name__ == '__main__':
         db_wrapper.init(**config)
         event_notifier_thread = threading.Thread(target=event_notifier, args=(bot, ))
         event_notifier_thread.start()
-        bot.polling()
+        bot.polling(True)
         event_notifier_thread.join()
