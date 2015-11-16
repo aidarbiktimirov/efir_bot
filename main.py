@@ -8,6 +8,7 @@ import time
 
 import telegram
 import telebot
+import flask
 
 import db_wrapper
 from texts import TEXTS
@@ -236,11 +237,30 @@ def event_notifier(bot):
         time.sleep(5)
 
 
+def handle_updates():
+    try:
+        data = flask.request.get_data()
+        update = telebot.types.Update.de_json(data)
+        bot.process_new_messages([update.message])
+        return ''
+    except Exception as e:
+        print >> sys.stderr, 'Couldn\'t update: {}'.format(e)
+
+
+def run_webhooks(cert, webhook):
+    bot.remove_webhook()
+    bot.set_webhook(url='https://{}:{}{}'.format(webhook['host'], webhook['port'], webhook['url']), certificate=open(cert['public']))
+    app = flask.Flask(__name__)
+    app.add_url_rule(webhook['url'], 'update', handle_updates, methods=['POST'])
+    app.run(host='0.0.0.0', port=webhook['port'], ssl_context=(cert['public'], cert['private']), debug=False, threaded=True)
+
+
 if __name__ == '__main__':
     with open('config.json') as config:
         config = json.load(config)
         db_wrapper.init(**config)
         event_notifier_thread = threading.Thread(target=event_notifier, args=(bot, ))
         event_notifier_thread.start()
-        bot.polling(True)
+        # bot.polling(True)
+        run_webhooks(config['certificate'], config['webhook'])
         event_notifier_thread.join()

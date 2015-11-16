@@ -7,7 +7,7 @@ import collections
 _client = None
 
 
-def init(hostname, port, username, password):
+def init(hostname, port, username, password, **kwargs):
     global _client
     _client = pymongo.MongoClient(hostname, port)
     if username is not None and password is not None:
